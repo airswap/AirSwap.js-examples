@@ -1,7 +1,6 @@
 import React from 'react'
 import * as ERC20 from 'airswap.js/src/erc20'
 import getSigner from 'airswap.js/src/wallet/getSigner'
-
 import * as tokenMetadata from 'airswap.js/src/tokens'
 import * as deltaBalances from 'airswap.js/src/deltaBalances'
 import * as dexIndex from 'airswap.js/src/dexIndex'
