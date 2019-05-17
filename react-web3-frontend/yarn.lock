@@ -1648,10 +1648,10 @@ aes-js@^3.1.1:
   resolved "https://registry.yarnpkg.com/aes-js/-/aes-js-3.1.2.tgz#db9aabde85d5caabbfc0d4f2a4446960f627146a"
   integrity sha512-e5pEa2kBnBOgR4Y/p20pskXI74UEz7de8ZGVo58asOtvSVG5YAbJeELPZxOmt+Bnz3rX753YKhfIn4X4l1PPRQ==
 
-airswap.js@^0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/airswap.js/-/airswap.js-0.0.6.tgz#43352496da744e032625f90ee858124355cbef68"
-  integrity sha512-Te3Hw6AMFVMIJtKvFaq4gtVQX+P6D6VM1wWhFZVe45sK2GcIKeNWgRZOaAWP/lmA2rh/thmHsIu+mcO5IQ16pg==
+airswap.js@^0.0.7:
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/airswap.js/-/airswap.js-0.0.7.tgz#36345d0974ed8fd4f73b14ef1f3024f797e21101"
+  integrity sha512-iAIGphZ5tfeB29Lo0GuBNmI/y0cbHA9wllPNfdJWb3RjWNQiem2vx23MjI/nUJD3h1L6GvCzl4FiwEA+F9jJwA==
   dependencies:
     "@ledgerhq/hw-app-eth" "^4.55.0"
     "@ledgerhq/hw-transport-u2f" "^4.55.0"

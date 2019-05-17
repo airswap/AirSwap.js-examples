@@ -47,6 +47,8 @@ class App extends React.Component {
       formTakerToken: '',
       formMakerToken: '',
       formMakerParam: '',
+      signedOrder: 'Paste a generated signed order here!',
+      generatedSignedOrder: {},
     }
     // wait to initialize the app until we have our signer (aka our wallet) ready to go
     this.ready = signerPromise.then(async wallet => {
@@ -58,52 +60,51 @@ class App extends React.Component {
 
   componentDidMount = () => {
     // wait until tokenMetadata is ready
-    Promise.all([this.ready, tokenMetadata.ready])
-      .then(() => {
-        const { tokens, tokensBySymbol } = tokenMetadata
+    Promise.all([this.ready, tokenMetadata.ready]).then(() => {
+      const { tokens, tokensBySymbol } = tokenMetadata
 
-        // set metadata in state
-        this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
-        // lookup DAI and WETH balance
-        return deltaBalances.getManyBalancesManyAddresses(
-          [tokensBySymbol.DAI.address, tokensBySymbol.WETH.address],
-          [this.address],
-        )
-      })
-      .then(balances => {
-        // set balances on state
-        const daiBalance = balances[this.address][tokenMetadata.tokensBySymbol.DAI.address]
-        const wethBalance = balances[this.address][tokenMetadata.tokensBySymbol.WETH.address]
-        this.setState({ daiBalance, wethBalance })
-      })
-      .then(() => {
-        // lookup the best price across all DEXes for 30k DAI
-        const config = {
-          side: 'buy',
-          amount: 30000,
-          symbol: 'DAI',
-        }
-        dexIndex.fetchDexIndexPrices(config).then(res => {
-          this.setState({ dexIndexData: res })
-        })
-      })
-      .then(() => {
-        // connect to the Router (peer discovery protocol)
-        return this.router.connect().then(() => {
-          console.log('connected to router')
-          // request orders for buying 500 DAI for ETH
-          return this.getEthOrders({
-            amount: 50,
-            tokenAddress: tokenMetadata.tokensBySymbol.DAI.address,
-            isSell: false,
-          })
-        })
-      })
-      .then(orders => {
-        // save orders on state
-        console.log('we got some order responses back!', orders)
-        this.setState({ orders })
-      })
+      // set metadata in state
+      this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
+      // lookup DAI and WETH balance
+      return deltaBalances.getManyBalancesManyAddresses(
+        [tokensBySymbol.DAI.address, tokensBySymbol.WETH.address],
+        [this.address],
+      )
+    })
+    // .then(balances => {
+    //   // set balances on state
+    //   const daiBalance = balances[this.address][tokenMetadata.tokensBySymbol.DAI.address]
+    //   const wethBalance = balances[this.address][tokenMetadata.tokensBySymbol.WETH.address]
+    //   this.setState({ daiBalance, wethBalance })
+    // })
+    // .then(() => {
+    //   // lookup the best price across all DEXes for 30k DAI
+    //   const config = {
+    //     side: 'buy',
+    //     amount: 30000,
+    //     symbol: 'DAI',
+    //   }
+    //   dexIndex.fetchDexIndexPrices(config).then(res => {
+    //     this.setState({ dexIndexData: res })
+    //   })
+    // })
+    // .then(() => {
+    //   // connect to the Router (peer discovery protocol)
+    //   return this.router.connect().then(() => {
+    //     console.log('connected to router')
+    //     // request orders for buying 500 DAI for ETH
+    //     return this.getEthOrders({
+    //       amount: 50,
+    //       tokenAddress: tokenMetadata.tokensBySymbol.DAI.address,
+    //       isSell: false,
+    //     })
+    //   })
+    // })
+    // .then(orders => {
+    //   // save orders on state
+    //   console.log('we got some order responses back!', orders)
+    //   this.setState({ orders })
+    // })
   }
 
   // use the swap protocol to find orders with ETH as the base pair
@@ -154,108 +155,148 @@ class App extends React.Component {
     } = this.state
 
     const signer = await getSigner({ web3Provider: window.ethereum })
+
+    const makerToken = tokensBySymbol[formMakerToken.toUpperCase()].address
+    const takerToken = tokensBySymbol[formTakerToken.toUpperCase()].address
+
     const order = {
       makerAddress: this.address.toLowerCase(),
-      makerAmount: '100000000000',
-      makerToken: tokensBySymbol[formMakerToken.toUpperCase()].address,
+      makerAmount: tokenMetadata.formatAtomicValueByToken({ address: makerToken }, formMakerParam),
+      makerToken,
       takerAddress: formTakerAddress.toLowerCase(),
-      takerAmount: '100000000000',
-      takerToken: tokensBySymbol[formTakerToken.toUpperCase()].address,
-      expiration: String(Date.now()),
-      nonce: String(Date.now()),
+      takerAmount: tokenMetadata.formatAtomicValueByToken({ address: takerToken }, formTakerParam),
+      takerToken,
+      expiration: Date.now(),
+      nonce: Date.now(),
     }
-    console.log('ORDER', order)
+
     const signedOrder = await swap.signOrder(order, signer)
+    console.log('signedOrder', signedOrder)
+    return signedOrder
+  }
+
+  async fillOrder() {
+    const order = JSON.parse(this.state.signedOrder)
+    const signer = await getSigner({ web3Provider: window.ethereum })
+    swap.fillOrder(order, signer).then(receipt => console.log('filled order success!', receipt))
   }
 
   render() {
-    const { tokens, daiBalance, wethBalance, dexIndexData, orders } = this.state
+    const { tokens, daiBalance, wethBalance, dexIndexData, orders, generatedSignedOrder, signedOrder } = this.state
     return (
       <div className="App">
-        <h2>Token Metadata</h2>
-        <div className="flex flex-wrap center w-90 flex-row">
-          {tokens.slice(0, 30).map((token, idx) => {
-            return (
-              <div key={idx} className="ma2">
-                <img width={25} src={token.airswap_img_url || token.cmc_img_url} />
-                <h4>{token.symbol}</h4>
+        <div className="mb7">
+          <h2 className="f2">Token Metadata</h2>
+          <div className="flex flex-wrap center w-90 flex-row">
+            {tokens.slice(0, 30).map((token, idx) => {
+              return (
+                <div key={idx} className="ma2">
+                  <img width={25} src={token.airswap_img_url || token.cmc_img_url} />
+                  <h4>{token.symbol}</h4>
 
-                <textarea value={JSON.stringify(token)} disabled />
+                  <textarea value={JSON.stringify(token)} disabled />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <div className="mb7">
+          <h2 className="f2">Balance Lookups</h2>
+          {/* let's see how much DAI and WETH this user has */}
+          <p>Dai Balance: {daiBalance}</p>
+          <p>Weth Balance: {wethBalance}</p>
+        </div>
+
+        <div className="mb7">
+          <h2 className="f2">DexIndex Price Search</h2>
+          {/* let's get some DEX price data for DAI */}
+          {JSON.stringify(dexIndexData)}
+        </div>
+
+        <div className="mb7">
+          <h2 className="f2">Fetch Price Quotes on the Swap Protocol</h2>
+          {/* We got some orders back! These orders could be filled by simply calling swapLegacy.fillOrder() and passing the signed order object! */}
+          {orders.map((order, idx) => {
+            return (
+              <div key={idx}>
+                <textarea value={JSON.stringify(order)} disabled />
               </div>
             )
           })}
         </div>
 
-        <h2>Balance Lookups</h2>
-        {/* let's see how much DAI and WETH this user has */}
-        <p>Dai Balance: {daiBalance}</p>
-        <p>Weth Balance: {wethBalance}</p>
-
-        <h2>DexIndex Price Search</h2>
-        {/* let's get some DEX price data for DAI */}
-        {JSON.stringify(dexIndexData)}
-
-        <h2>Fetch Price Quotes on the Swap Protocol</h2>
-        {/* We got some orders back! These orders could be filled by simply calling swapLegacy.fillOrder() and passing the signed order object! */}
-        {orders.map((order, idx) => {
-          return (
-            <div key={idx}>
-              <textarea value={JSON.stringify(order)} disabled />
+        <div className="mb7">
+          <h2 className="f2">Simple Swap</h2>
+          <h3 className="f3">Create Order</h3>
+          {/* Generate a simple swap order that you can send over email, twitter, telegram, or whatever! */}
+          <form className="mb5">
+            makerAddress: {this.address}
+            <div>
+              <input
+                required
+                value={this.state.formTakerAddress}
+                onChange={this.handleInputChange.bind(this, 'formTakerAddress')}
+                placeholder="takerAddress"
+              />
             </div>
-          )
-        })}
+            <div>
+              <input
+                required
+                value={this.state.formMakerToken}
+                placeholder="maker token symbol"
+                onChange={this.handleInputChange.bind(this, 'formMakerToken')}
+              />
+            </div>
+            <div>
+              <input
+                required
+                value={this.state.formTakerToken}
+                placeholder="taker token symbol"
+                onChange={this.handleInputChange.bind(this, 'formTakerToken')}
+              />
+            </div>
+            <div>
+              <input
+                required
+                value={this.state.formMakerParam}
+                placeholder="makerAmount"
+                onChange={this.handleInputChange.bind(this, 'formMakerParam')}
+              />
+            </div>
+            <div>
+              <input
+                required
+                value={this.state.formTakerParam}
+                placeholder="takerAmount"
+                onChange={this.handleInputChange.bind(this, 'formTakerParam')}
+              />
+            </div>
+            <button
+              type="submit"
+              onClick={e => {
+                e.preventDefault()
+                this.createSignedOrder().then(order => this.setState({ generatedSignedOrder: order }))
+              }}
+            >
+              Generate Order
+            </button>
+            <div className="mv4">Signed Order Object:</div>
+            <div>
+              <textarea disabled value={JSON.stringify(generatedSignedOrder)} />
+            </div>
+          </form>
 
-        <h2>Simple Swap</h2>
-        {/* Generate a simple swap order that you can send over email, twitter, telegram, or whatever! */}
-        <form className="mb5">
-          makerAddress: {this.address}
-          <div>
-            <input
-              value={this.state.formTakerAddress}
-              onChange={this.handleInputChange.bind(this, 'formTakerAddress')}
-              placeholder="takerAddress"
-            />
-          </div>
-          <div>
-            <input
-              value={this.state.formMakerToken}
-              placeholder="maker token symbol"
-              onChange={this.handleInputChange.bind(this, 'formMakerToken')}
-            />
-          </div>
-          <div>
-            <input
-              value={this.state.formTakerToken}
-              placeholder="taker token symbol"
-              onChange={this.handleInputChange.bind(this, 'formTakerToken')}
-            />
-          </div>
-          <div>
-            <input
-              value={this.state.formMakerParam}
-              placeholder="makerAmount"
-              onChange={this.handleInputChange.bind(this, 'formMakerParam')}
-            />
-          </div>
-          <div>
-            <input
-              value={this.state.formTakerParam}
-              placeholder="takerAmount"
-              onChange={this.handleInputChange.bind(this, 'formTakerParam')}
-            />
-          </div>
-          <button
-            onClick={e => {
-              e.preventDefault()
-              this.createSignedOrder()
+          <h3 className="f3">Fill order</h3>
+          <textarea
+            onChange={e => {
+              this.setState({ signedOrder: e.target.value })
             }}
-          >
-            Generate Order
-          </button>
+            value={signedOrder}
+          />
           <div>
-            <textarea disabled value="test" />
+            <button onClick={this.fillOrder.bind(this)}>Fill Order</button>
           </div>
-        </form>
+        </div>
       </div>
     )
   }
