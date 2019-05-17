@@ -1,6 +1,6 @@
 import React from 'react'
-import { ethers } from 'ethers'
 import * as ERC20 from 'airswap.js/src/erc20'
+import getSigner from 'airswap.js/src/wallet/getSigner'
 import * as tokenMetadata from 'airswap.js/src/tokens'
 import * as deltaBalances from 'airswap.js/src/deltaBalances'
 import * as dexIndex from 'airswap.js/src/dexIndex'
@@ -12,8 +12,14 @@ import './App.css'
 // you should use a signer most of the time
 // https://docs.ethers.io/ethers.js/html/api-wallet.html#signer-api
 // for example purposes, we'll just create a new random wallet
-const randomWallet = ethers.Wallet.createRandom()
-console.log('wallet address', randomWallet.address)
+const signerPromise = window.ethereum
+  .enable()
+  .then(async () =>
+    getSigner({ web3Provider: window.ethereum })
+  )
+  .catch(e => {
+    alert(`Error connecting metamask: ${e}`)
+  })
 
 console.log('tokenMetadata', tokenMetadata)
 console.log('deltaBalances', deltaBalances)
@@ -33,29 +39,31 @@ class App extends React.Component {
       wethBalance: 'fetching...',
       dexIndexData: 'fetching...',
     }
-    const messageSigner = data => randomWallet.signMessage(data)
-    this.router = new Router({ messageSigner, address: randomWallet.address.toLowerCase(), keyspace: false })
+    this.ready = signerPromise.then(async wallet => {
+      const messageSigner = data => wallet.signMessage(data)
+      this.address = (await wallet.getAddress()).toLowerCase()
+      this.router = new Router({ messageSigner, address: this.address, keyspace: false })
+    })
   }
 
   componentDidMount = () => {
     // wait until tokenMetadata is ready
-    tokenMetadata.ready
+    Promise.all([this.ready, tokenMetadata.ready])
       .then(() => {
         const { tokens, tokensBySymbol } = tokenMetadata
 
         // set metadata in state
         this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
-
         // lookup DAI and WETH balance
         return deltaBalances.getManyBalancesManyAddresses(
           [tokensBySymbol.DAI.address, tokensBySymbol.WETH.address],
-          [randomWallet.address],
+          [this.address],
         )
       })
       .then(balances => {
         // set balances on state
-        const daiBalance = balances[randomWallet.address][tokenMetadata.tokensBySymbol.DAI.address]
-        const wethBalance = balances[randomWallet.address][tokenMetadata.tokensBySymbol.WETH.address]
+        const daiBalance = balances[this.address][tokenMetadata.tokensBySymbol.DAI.address]
+        const wethBalance = balances[this.address][tokenMetadata.tokensBySymbol.WETH.address]
         this.setState({ daiBalance, wethBalance })
       })
       .then(() => {
