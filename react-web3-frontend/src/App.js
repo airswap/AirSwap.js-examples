@@ -13,8 +13,7 @@ import './App.css'
 // https://docs.ethers.io/ethers.js/html/api-wallet.html#signer-api
 // for example purposes, we'll just create a new random wallet
 const randomWallet = ethers.Wallet.createRandom()
-
-console.log('wallet', randomWallet.address)
+console.log('wallet address', randomWallet.address)
 
 console.log('tokenMetadata', tokenMetadata)
 console.log('deltaBalances', deltaBalances)
@@ -22,30 +21,20 @@ console.log('dexIndex', dexIndex)
 console.log('erc20', ERC20)
 console.log('swap', swap)
 
-// request an order from an AUTOMATED MAKER for 1000 USDC
-
-// fill that order
-
-// sign an order for a simple token swap on the legacy contract
-
-// sign an order for a fancy nft swap on the new swap contract
-
-// do a simple order sign + order fill example
-// swap.signOrder()
-// swap.fillOrder()
-
 class App extends React.Component {
   constructor() {
     super()
     this.state = {
       tokens: [],
+      orders: [],
       tokensBySymbol: {},
+      isMetadataReady: false,
       daiBalance: 'fetching...',
       wethBalance: 'fetching...',
       dexIndexData: 'fetching...',
     }
-
-    this.router = new Router({ messageSigner: randomWallet, address: randomWallet.address, keyspace: false })
+    const messageSigner = data => randomWallet.signMessage(data)
+    this.router = new Router({ messageSigner, address: randomWallet.address.toLowerCase(), keyspace: false })
   }
 
   componentDidMount = () => {
@@ -55,7 +44,7 @@ class App extends React.Component {
         const { tokens, tokensBySymbol } = tokenMetadata
 
         // set metadata in state
-        this.setState({ tokens, tokensBySymbol })
+        this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
 
         // lookup DAI and WETH balance
         return deltaBalances.getManyBalancesManyAddresses(
@@ -80,15 +69,49 @@ class App extends React.Component {
           this.setState({ dexIndexData: res })
         })
       })
+      .then(() => {
+        // connect to the Router (peer discovery protocol)
+        return this.router.connect().then(() => {
+          console.log('connected to router')
+          // request orders for buying 500 DAI for ETH
+          return this.getEthOrders({
+            amount: 500,
+            tokenAddress: tokenMetadata.tokensBySymbol.DAI.address,
+            isSell: false,
+          })
+        })
+      })
+      .then(orders => {
+        // save orders on state
+        console.log('we got some order responses back!', orders)
+        this.setState({ orders })
+      })
+  }
 
-    // connect to the Router (peer discovery protocol)
-    this.router.connect().then(() => {
-      console.log('connected to router')
-    })
+  // use the swap protocol to find orders with ETH as the base pair
+  async getEthOrders({ amount, tokenAddress, isSell }) {
+    const { tokensBySymbol } = this.state
+    const makerToken = isSell ? tokensBySymbol.WETH.address : tokenAddress
+    const takerToken = isSell ? tokenAddress : tokensBySymbol.ETH.address
+
+    // step 1 - ask the indexer which makers are trading this token
+    const intents = await this.router.findIntents([makerToken], [takerToken])
+    console.log('intents', intents)
+
+    // step 2 - for each intent, request an order
+    const config = {}
+    if (isSell) {
+      config.takerAmount = tokenMetadata.formatAtomicValueByToken({ address: tokenAddress }, amount)
+    } else {
+      config.makerAmount = tokenMetadata.formatAtomicValueByToken({ address: tokenAddress }, amount)
+    }
+
+    const orders = await this.router.getOrders(intents, config)
+    return orders
   }
 
   render() {
-    const { tokens, daiBalance, wethBalance, dexIndexData } = this.state
+    const { tokens, daiBalance, wethBalance, dexIndexData, orders } = this.state
     return (
       <div className="App">
         <h2>Token Metadata</h2>
@@ -115,6 +138,13 @@ class App extends React.Component {
         {JSON.stringify(dexIndexData)}
 
         <h2>Fetch Price Quotes on the Swap Protocol</h2>
+        {orders.map(order => {
+          return (
+            <div>
+              <textarea value={JSON.stringify(order)} disabled />
+            </div>
+          )
+        })}
       </div>
     )
   }
