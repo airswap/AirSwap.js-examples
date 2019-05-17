@@ -1,4 +1,5 @@
 import React from 'react'
+import { ethers } from 'ethers'
 import * as ERC20 from 'airswap.js/src/erc20'
 import getSigner from 'airswap.js/src/wallet/getSigner'
 import * as tokenMetadata from 'airswap.js/src/tokens'
@@ -178,7 +179,12 @@ class App extends React.Component {
   async fillOrder() {
     const order = JSON.parse(this.state.signedOrder)
     const signer = await getSigner({ web3Provider: window.ethereum })
-    swap.fillOrder(order, signer).then(receipt => console.log('filled order success!', receipt))
+    const params = {
+      gasLimit: 250000,
+      gasPrice: ethers.utils.parseUnits('20', 'gwei').toNumber(),
+    }
+    console.log(order)
+    swap.fillOrder(order, signer, params).then(receipt => console.log('filled order success!', receipt))
   }
 
   render() {

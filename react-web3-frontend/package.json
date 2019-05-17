@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "airswap.js": "^0.0.7",
+    "airswap.js": "^0.0.8",
+    "ethers": "^4.0.23",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-scripts": "3.0.1"
