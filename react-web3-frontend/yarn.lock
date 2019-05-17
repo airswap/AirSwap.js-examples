@@ -1648,10 +1648,10 @@ aes-js@^3.1.1:
   resolved "https://registry.yarnpkg.com/aes-js/-/aes-js-3.1.2.tgz#db9aabde85d5caabbfc0d4f2a4446960f627146a"
   integrity sha512-e5pEa2kBnBOgR4Y/p20pskXI74UEz7de8ZGVo58asOtvSVG5YAbJeELPZxOmt+Bnz3rX753YKhfIn4X4l1PPRQ==
 
-airswap.js@^0.0.2:
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/airswap.js/-/airswap.js-0.0.2.tgz#9278bc2e5c4a044cfcd07856180a8cdeb4c1fe41"
-  integrity sha512-j9mkVuVQy/R0QVAL7W86zEPEbhHV7gwbf1eBHGLowKAe4eFN6JUo11FMsBftvMt/iiUEA0NeJYpuy3jL3lv7Jg==
+airswap.js@^0.0.6:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/airswap.js/-/airswap.js-0.0.6.tgz#43352496da744e032625f90ee858124355cbef68"
+  integrity sha512-Te3Hw6AMFVMIJtKvFaq4gtVQX+P6D6VM1wWhFZVe45sK2GcIKeNWgRZOaAWP/lmA2rh/thmHsIu+mcO5IQ16pg==
   dependencies:
     "@ledgerhq/hw-app-eth" "^4.55.0"
     "@ledgerhq/hw-transport-u2f" "^4.55.0"
@@ -6508,9 +6508,9 @@ inquirer@^6.2.2:
     strip-ansi "^5.1.0"
     through "^2.3.6"
 
-"instant-on-chain-maker-contract@ssh://git@github.com:airswap/onchain-maker-contract#1eaeaebd7a474972036cd9ceeb208a2756050096":
+"instant-on-chain-maker-contract@git+ssh://git@github.com/airswap/onchain-maker-contract.git#1eaeaebd7a474972036cd9ceeb208a2756050096":
   version "1.0.0"
-  resolved "ssh://git@github.com:airswap/onchain-maker-contract#1eaeaebd7a474972036cd9ceeb208a2756050096"
+  resolved "git+ssh://git@github.com/airswap/onchain-maker-contract.git#1eaeaebd7a474972036cd9ceeb208a2756050096"
   dependencies:
     solidity-coverage "git://github.com/dmosites/solidity-coverage.git"
     truffle-contract "^4.0.5"

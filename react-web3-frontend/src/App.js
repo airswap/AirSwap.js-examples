@@ -5,6 +5,7 @@ import * as tokenMetadata from 'airswap.js/src/tokens'
 import * as deltaBalances from 'airswap.js/src/deltaBalances'
 import * as dexIndex from 'airswap.js/src/dexIndex'
 import * as swap from 'airswap.js/src/swapLegacy'
+import * as swapSimple from 'airswap.js/src/swap'
 import Router from 'airswap.js/src/protocolMessaging'
 
 import './App.css'
@@ -41,6 +42,11 @@ class App extends React.Component {
       daiBalance: 'fetching...',
       wethBalance: 'fetching...',
       dexIndexData: 'fetching...',
+      formTakerAddress: '',
+      formTakerParam: '',
+      formTakerToken: '',
+      formMakerToken: '',
+      formMakerParam: '',
     }
     // wait to initialize the app until we have our signer (aka our wallet) ready to go
     this.ready = signerPromise.then(async wallet => {
@@ -87,7 +93,7 @@ class App extends React.Component {
           console.log('connected to router')
           // request orders for buying 500 DAI for ETH
           return this.getEthOrders({
-            amount: 500,
+            amount: 50,
             tokenAddress: tokenMetadata.tokensBySymbol.DAI.address,
             isSell: false,
           })
@@ -111,15 +117,55 @@ class App extends React.Component {
     console.log('intents', intents)
 
     // step 2 - for each intent, request an order
-    const config = {}
+    const config = {
+      makerToken,
+      takerToken,
+      takerAddress: this.address.toLowerCase(),
+    }
     if (isSell) {
       config.takerAmount = tokenMetadata.formatAtomicValueByToken({ address: tokenAddress }, amount)
     } else {
       config.makerAmount = tokenMetadata.formatAtomicValueByToken({ address: tokenAddress }, amount)
     }
 
-    const orders = await this.router.getOrders(intents, config)
+    const orderPromises = []
+
+    intents.forEach(({ address, makerToken, takerToken }) => {
+      orderPromises.push(this.router.getOrder(address, config).catch(e => e))
+    })
+
+    const orders = await Promise.all(orderPromises).catch(e => e)
     return orders
+  }
+
+  handleInputChange = (id, e) => {
+    const { value } = e.target
+    this.setState({ [id]: value })
+  }
+
+  async createSignedOrder() {
+    const {
+      formTakerAddress,
+      formTakerParam,
+      formTakerToken,
+      formMakerToken,
+      formMakerParam,
+      tokensBySymbol,
+    } = this.state
+
+    const signer = await getSigner({ web3Provider: window.ethereum })
+    const order = {
+      makerAddress: this.address.toLowerCase(),
+      makerAmount: '100000000000',
+      makerToken: tokensBySymbol[formMakerToken.toUpperCase()].address,
+      takerAddress: formTakerAddress.toLowerCase(),
+      takerAmount: '100000000000',
+      takerToken: tokensBySymbol[formTakerToken.toUpperCase()].address,
+      expiration: String(Date.now()),
+      nonce: String(Date.now()),
+    }
+    console.log('ORDER', order)
+    const signedOrder = await swap.signOrder(order, signer)
   }
 
   render() {
@@ -128,7 +174,7 @@ class App extends React.Component {
       <div className="App">
         <h2>Token Metadata</h2>
         <div className="flex flex-wrap center w-90 flex-row">
-          {tokens.slice(0, 20).map((token, idx) => {
+          {tokens.slice(0, 30).map((token, idx) => {
             return (
               <div key={idx} className="ma2">
                 <img width={25} src={token.airswap_img_url || token.cmc_img_url} />
@@ -150,13 +196,66 @@ class App extends React.Component {
         {JSON.stringify(dexIndexData)}
 
         <h2>Fetch Price Quotes on the Swap Protocol</h2>
-        {orders.map(order => {
+        {/* We got some orders back! These orders could be filled by simply calling swapLegacy.fillOrder() and passing the signed order object! */}
+        {orders.map((order, idx) => {
           return (
-            <div>
+            <div key={idx}>
               <textarea value={JSON.stringify(order)} disabled />
             </div>
           )
         })}
+
+        <h2>Simple Swap</h2>
+        {/* Generate a simple swap order that you can send over email, twitter, telegram, or whatever! */}
+        <form className="mb5">
+          makerAddress: {this.address}
+          <div>
+            <input
+              value={this.state.formTakerAddress}
+              onChange={this.handleInputChange.bind(this, 'formTakerAddress')}
+              placeholder="takerAddress"
+            />
+          </div>
+          <div>
+            <input
+              value={this.state.formMakerToken}
+              placeholder="maker token symbol"
+              onChange={this.handleInputChange.bind(this, 'formMakerToken')}
+            />
+          </div>
+          <div>
+            <input
+              value={this.state.formTakerToken}
+              placeholder="taker token symbol"
+              onChange={this.handleInputChange.bind(this, 'formTakerToken')}
+            />
+          </div>
+          <div>
+            <input
+              value={this.state.formMakerParam}
+              placeholder="makerAmount"
+              onChange={this.handleInputChange.bind(this, 'formMakerParam')}
+            />
+          </div>
+          <div>
+            <input
+              value={this.state.formTakerParam}
+              placeholder="takerAmount"
+              onChange={this.handleInputChange.bind(this, 'formTakerParam')}
+            />
+          </div>
+          <button
+            onClick={e => {
+              e.preventDefault()
+              this.createSignedOrder()
+            }}
+          >
+            Generate Order
+          </button>
+          <div>
+            <textarea disabled value="test" />
+          </div>
+        </form>
       </div>
     )
   }
