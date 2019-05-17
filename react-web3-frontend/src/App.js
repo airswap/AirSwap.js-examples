@@ -9,23 +9,26 @@ import Router from 'airswap.js/src/protocolMessaging'
 
 import './App.css'
 
-// you should use a signer most of the time
-// https://docs.ethers.io/ethers.js/html/api-wallet.html#signer-api
-// for example purposes, we'll just create a new random wallet
+// there's many ways to get a signer with ethers.js, in this example we'll use MetaMask
 const signerPromise = window.ethereum
   .enable()
-  .then(async () =>
-    getSigner({ web3Provider: window.ethereum })
-  )
+  .then(async () => getSigner({ web3Provider: window.ethereum }))
   .catch(e => {
     alert(`Error connecting metamask: ${e}`)
   })
 
+// token names, addresses, symbols, images, and lots of helpful functions for things like decimal conversion
 console.log('tokenMetadata', tokenMetadata)
+// utility functions to fetch users' token balances, useful for wallets and trading
 console.log('deltaBalances', deltaBalances)
+// dexindex api wrapper, allows you to search for the best price for any arbitrary token across all DEX's
 console.log('dexIndex', dexIndex)
+// erc20 helper functions; approve tokens to be moved by other smart contracts, wrap/unwrap weth, etc.
 console.log('erc20', ERC20)
-console.log('swap', swap)
+// the bare minimum AirSwap functions: signOrder and fillOrder. User A signs an order with signOrder() and sends it to User B. User B submits that order to fillOrder() and the swap executes. that's it!
+console.log('simple swap functions', swap)
+// this contains helpers to facilitate the full Swap protocol
+console.log('swap protocol message router', Router)
 
 class App extends React.Component {
   constructor() {
@@ -39,6 +42,7 @@ class App extends React.Component {
       wethBalance: 'fetching...',
       dexIndexData: 'fetching...',
     }
+    // wait to initialize the app until we have our signer (aka our wallet) ready to go
     this.ready = signerPromise.then(async wallet => {
       const messageSigner = data => wallet.signMessage(data)
       this.address = (await wallet.getAddress()).toLowerCase()
