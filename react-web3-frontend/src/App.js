@@ -61,51 +61,52 @@ class App extends React.Component {
 
   componentDidMount = () => {
     // wait until tokenMetadata is ready
-    Promise.all([this.ready, tokenMetadata.ready]).then(() => {
-      const { tokens, tokensBySymbol } = tokenMetadata
+    Promise.all([this.ready, tokenMetadata.ready])
+      .then(() => {
+        const { tokens, tokensBySymbol } = tokenMetadata
 
-      // set metadata in state
-      this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
-      // lookup DAI and WETH balance
-      return deltaBalances.getManyBalancesManyAddresses(
-        [tokensBySymbol.DAI.address, tokensBySymbol.WETH.address],
-        [this.address],
-      )
-    })
-    // .then(balances => {
-    //   // set balances on state
-    //   const daiBalance = balances[this.address][tokenMetadata.tokensBySymbol.DAI.address]
-    //   const wethBalance = balances[this.address][tokenMetadata.tokensBySymbol.WETH.address]
-    //   this.setState({ daiBalance, wethBalance })
-    // })
-    // .then(() => {
-    //   // lookup the best price across all DEXes for 30k DAI
-    //   const config = {
-    //     side: 'buy',
-    //     amount: 30000,
-    //     symbol: 'DAI',
-    //   }
-    //   dexIndex.fetchDexIndexPrices(config).then(res => {
-    //     this.setState({ dexIndexData: res })
-    //   })
-    // })
-    // .then(() => {
-    //   // connect to the Router (peer discovery protocol)
-    //   return this.router.connect().then(() => {
-    //     console.log('connected to router')
-    //     // request orders for buying 500 DAI for ETH
-    //     return this.getEthOrders({
-    //       amount: 50,
-    //       tokenAddress: tokenMetadata.tokensBySymbol.DAI.address,
-    //       isSell: false,
-    //     })
-    //   })
-    // })
-    // .then(orders => {
-    //   // save orders on state
-    //   console.log('we got some order responses back!', orders)
-    //   this.setState({ orders })
-    // })
+        // set metadata in state
+        this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
+        // lookup DAI and WETH balance
+        return deltaBalances.getManyBalancesManyAddresses(
+          [tokensBySymbol.DAI.address, tokensBySymbol.WETH.address],
+          [this.address],
+        )
+      })
+      .then(balances => {
+        // set balances on state
+        const daiBalance = balances[this.address][tokenMetadata.tokensBySymbol.DAI.address]
+        const wethBalance = balances[this.address][tokenMetadata.tokensBySymbol.WETH.address]
+        this.setState({ daiBalance, wethBalance })
+      })
+      .then(() => {
+        // lookup the best price across all DEXes for 30k DAI
+        const config = {
+          side: 'buy',
+          amount: 30000,
+          symbol: 'DAI',
+        }
+        dexIndex.fetchDexIndexPrices(config).then(res => {
+          this.setState({ dexIndexData: res })
+        })
+      })
+      .then(() => {
+        // connect to the Router (peer discovery protocol)
+        return this.router.connect().then(() => {
+          console.log('connected to router')
+          // request orders for buying 500 DAI for ETH
+          return this.getEthOrders({
+            amount: 50,
+            tokenAddress: tokenMetadata.tokensBySymbol.DAI.address,
+            isSell: false,
+          })
+        })
+      })
+      .then(orders => {
+        // save orders on state
+        console.log('we got some order responses back!', orders)
+        this.setState({ orders })
+      })
   }
 
   // use the swap protocol to find orders with ETH as the base pair
