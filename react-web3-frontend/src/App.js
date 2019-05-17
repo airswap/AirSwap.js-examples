@@ -31,7 +31,6 @@ console.log('swap', swap)
 class App extends React.Component {
   constructor() {
     super()
-    const that = this
     this.state = {
       tokens: [],
       orders: [],
@@ -43,8 +42,8 @@ class App extends React.Component {
     }
     this.ready = signerPromise.then(async wallet => {
       const messageSigner = data => wallet.signMessage(data)
-      that.address = (await wallet.getAddress()).toLowerCase()
-      this.router = new Router({ messageSigner, address: that.address, keyspace: false })
+      this.address = (await wallet.getAddress()).toLowerCase()
+      this.router = new Router({ messageSigner, address: this.address, keyspace: false })
     })
   }
 
@@ -56,7 +55,6 @@ class App extends React.Component {
 
         // set metadata in state
         this.setState({ tokens, tokensBySymbol, isMetadataReady: true })
-        debugger
         // lookup DAI and WETH balance
         return deltaBalances.getManyBalancesManyAddresses(
           [tokensBySymbol.DAI.address, tokensBySymbol.WETH.address],
