@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "airswap.js": "^0.0.10",
+    "bignumber.js": "^8.1.1",
     "ethers": "^4.0.23",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
