@@ -21,3 +21,13 @@ For Yarn package manager:
 
 For NPM:
 `npm install && npm run start:mainnet`
+
+### react-web3-frontend
+
+##### About
+
+Similar to react-web3-frontend, but it is instantiated with redux folder structure, and pulls in the AirSwap.js redux modules.
+
+##### Requirements
+
+Same as react-web3-frontend
