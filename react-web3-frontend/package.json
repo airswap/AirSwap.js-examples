@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "start": "yarn start:mainnet",
-    "start:rinkeby": "REACT_APP_ENVIRONMENT=development react-scripts start",
-    "start:mainnet": "REACT_APP_ENVIRONMENT=production react-scripts start",
+    "start:rinkeby": "HTTPS=true REACT_APP_ENVIRONMENT=development react-scripts start",
+    "start:mainnet": "HTTPS=true REACT_APP_ENVIRONMENT=production react-scripts start",
     "build": "REACT_APP_ENVIRONMENT=production react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
